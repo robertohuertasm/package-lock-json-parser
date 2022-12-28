@@ -1,0 +1,27 @@
+[package]
+name = "package-lock-json-parser"
+version = "0.1.0"
+authors = [
+  "Roberto Huertas <roberto.huertas@outlook.com>",
+]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/robertohuertasm/package-lock-json-parser"
+readme = "README.md"
+keywords = ["npm", "package.json", "package-lock.json", "parser"]
+categories = ["parsing"]
+
+exclude = [
+  ".github/*",
+  "tests/*",
+]
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0.38"
