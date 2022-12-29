@@ -4,20 +4,36 @@
 
 Easily parse `package-lock.json` dependencies.
 
-Supports lock file versions 1, 2, and 3.
+It supports lock file versions 1, 2, and 3.
 
 ## Example
 
 ```rust
+// Getting a full package lock json file.
+// You'll get information about the lock file version and a list of v1 or v2 dependencies.
+// v1 lock files will only have v1 dependencies while v3 lock files will only have v2 dependencies. 
+// v2 lock files will get both v1 and v2 dependencies.
+// Check this URL (https://docs.npmjs.com/cli/v9/configuring-npm/package-lock-json?v=true) if you want to learn more about package-lock.json fields.
 use std::{error::Error, fs};
-use yarn_lock_parser::{parse_str, Entry};
+use package_lock_json::{parse, PackageLockJson};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let package_lock_json_text = fs::read_to_string("package-lock.json")?;
-    let entries: Vec<Entry> = parse_str(&package_lock_json_text)?;
+    let lock_file: PackageLockJson = parse(package_lock_json_text)?;
+    println!("{:?}", lock_file);
+    Ok(())
+}
+```
 
-    println!("{:?}", entries);
+```rust
+// If you just a new a simple list of dependencies try the parse_dependencies function.
+use std::{error::Error, fs};
+use package_lock_json::{parse_dependencies, SimpleDependency};
 
+fn main() -> Result<(), Box<dyn Error>> {
+    let package_lock_json_text = fs::read_to_string("package-lock.json")?;
+    let dependencies: Vec<SimpleDependency> = parse_dependencies(package_lock_json_text)?;
+    println!("{:?}", dependencies);
     Ok(())
 }
 ```
