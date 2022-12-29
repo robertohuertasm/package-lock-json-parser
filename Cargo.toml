@@ -8,7 +8,7 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/robertohuertasm/package-lock-json-parser"
 readme = "README.md"
-keywords = ["npm", "package.json", "package-lock.json", "parser"]
+keywords = ["npm", "package_json", "package-lock_json", "parser"]
 categories = ["parsing"]
 
 exclude = [
