@@ -76,7 +76,7 @@ pub struct SimpleDependency {
 
 /// Parses a package-lock.json file.
 /// Support v1, v2 and v3 lock files
-#[instrument()]
+#[instrument(skip(content))]
 pub fn parse(
     content: impl Into<String> + std::fmt::Debug,
 ) -> Result<PackageLockJson, PackageLockJsonError> {
@@ -87,7 +87,7 @@ pub fn parse(
 /// Returns a list of dependencies from a package-lock.json file.
 /// The dependencies returned by this function only show a few fields.
 /// If you need more information, use the parse function.
-#[instrument()]
+#[instrument(skip(content))]
 pub fn parse_dependencies(
     content: impl Into<String> + std::fmt::Debug,
 ) -> Result<Vec<SimpleDependency>, PackageLockJsonError> {
