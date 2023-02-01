@@ -13,57 +13,57 @@ pub enum PackageLockJsonError {
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Eq, PartialEq)]
 pub struct PackageLockJson {
-    name: String,
-    version: String,
+    pub name: String,
+    pub version: String,
     #[serde(rename = "lockfileVersion")]
-    lockfile_version: u32,
-    dependencies: Option<HashMap<String, V1Dependency>>,
+    pub lockfile_version: u32,
+    pub dependencies: Option<HashMap<String, V1Dependency>>,
     #[serde(deserialize_with = "deserialize_packages", default)]
-    packages: Option<HashMap<String, V2Dependency>>,
+    pub packages: Option<HashMap<String, V2Dependency>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Default)]
 pub struct V1Dependency {
-    version: String,
-    resolved: String,
-    integrity: String,
+    pub version: String,
+    pub resolved: String,
+    pub integrity: String,
     #[serde(default)]
-    bundled: bool,
+    pub bundled: bool,
     #[serde(rename = "dev", default)]
-    is_dev: bool,
+    pub is_dev: bool,
     #[serde(rename = "optional", default)]
-    is_optional: bool,
-    requires: Option<HashMap<String, String>>,
-    dependencies: Option<HashMap<String, V1Dependency>>,
+    pub is_optional: bool,
+    pub requires: Option<HashMap<String, String>>,
+    pub dependencies: Option<HashMap<String, V1Dependency>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Default)]
 pub struct V2Dependency {
-    version: String,
-    resolved: String,
-    integrity: String,
+    pub version: String,
+    pub resolved: String,
+    pub integrity: String,
     #[serde(default)]
-    bundled: bool,
+    pub bundled: bool,
     #[serde(rename = "dev", default)]
-    is_dev: bool,
+    pub is_dev: bool,
     #[serde(rename = "optional", default)]
-    is_optional: bool,
+    pub is_optional: bool,
     #[serde(rename = "devOptional", default)]
-    is_dev_optional: bool,
+    pub is_dev_optional: bool,
     #[serde(rename = "inBundle", default)]
-    is_in_bundle: bool,
+    pub is_in_bundle: bool,
     #[serde(rename = "hasInstallScript", default)]
-    has_install_script: bool,
+    pub has_install_script: bool,
     #[serde(rename = "hasShrinkwrap", default)]
-    has_shrink_wrap: bool,
-    dependencies: Option<HashMap<String, String>>,
+    pub has_shrink_wrap: bool,
+    pub dependencies: Option<HashMap<String, String>>,
     #[serde(rename = "optionalDependencies")]
-    optional_dependencies: Option<HashMap<String, String>>,
+    pub optional_dependencies: Option<HashMap<String, String>>,
     #[serde(rename = "peerDependencies")]
-    peer_dependencies: Option<HashMap<String, String>>,
-    license: Option<String>,
-    engines: Option<HashMap<String, String>>,
-    bin: Option<HashMap<String, String>>,
+    pub peer_dependencies: Option<HashMap<String, String>>,
+    pub license: Option<String>,
+    pub engines: Option<HashMap<String, String>>,
+    pub bin: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
