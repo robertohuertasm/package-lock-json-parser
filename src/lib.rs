@@ -26,7 +26,7 @@ pub struct PackageLockJson {
 pub struct V1Dependency {
     pub version: String,
     pub resolved: Option<String>,
-    pub integrity: String,
+    pub integrity: Option<String>,
     #[serde(default)]
     pub bundled: bool,
     #[serde(rename = "dev", default)]
@@ -41,7 +41,7 @@ pub struct V1Dependency {
 pub struct V2Dependency {
     pub version: String,
     pub resolved: Option<String>,
-    pub integrity: String,
+    pub integrity: Option<String>,
     #[serde(default)]
     pub bundled: bool,
     #[serde(rename = "dev", default)]
@@ -186,7 +186,7 @@ mod tests {
         V1Dependency{
             version : "7.18.6".to_string(),
             resolved: Some("https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string()),
-            integrity: "sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string(),
+            integrity: Some("sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string()),
             bundled: false,
             is_dev: true,
             is_optional: false,
@@ -194,7 +194,7 @@ mod tests {
             dependencies: Some(HashMap::from([("js-tokens".to_string(), V1Dependency {
                 version: "4.0.0".to_string(),
                 resolved: Some("https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz".to_string()),
-                integrity: "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==".to_string(),
+                integrity: Some("sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==".to_string()),
                 is_dev: true,
                 bundled: false,
                 ..V1Dependency::default()
@@ -207,7 +207,7 @@ mod tests {
         V2Dependency{
             version : "7.18.6".to_string(),
             resolved: Some("https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string()),
-            integrity: "sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string(),
+            integrity: Some("sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string()),
             bundled: false,
             is_dev: true,
             is_optional: false,
@@ -215,6 +215,36 @@ mod tests {
             engines: Some(HashMap::from([("node".to_string(), ">=6.9.0".to_string())])),
             ..V2Dependency::default()
         }
+    }
+
+    #[test]
+    fn parse_workspace_dependencies_works() {
+        let content = std::fs::read_to_string("tests/workspace/v3/package-lock.json").unwrap();
+        let lock_file = parse(content).unwrap();
+        assert_eq!(lock_file.name, "kk");
+        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.lockfile_version, 3);
+
+        assert!(lock_file.dependencies.is_none());
+        assert!(lock_file.packages.is_some());
+
+        let packages = lock_file.packages.unwrap();
+        let lib = packages.get("liba").unwrap();
+
+        let expected = V2Dependency {
+            version: "1.0.0".to_string(),
+            resolved: None,
+            integrity: None,
+            bundled: false,
+            is_dev: false,
+            is_optional: false,
+            dependencies: None,
+            license: Some("ISC".to_string()),
+            engines: None,
+            ..V2Dependency::default()
+        };
+
+        assert_eq!(lib, &expected);
     }
 
     #[test]
