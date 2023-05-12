@@ -25,7 +25,7 @@ pub struct PackageLockJson {
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Default)]
 pub struct V1Dependency {
     pub version: String,
-    pub resolved: String,
+    pub resolved: Option<String>,
     pub integrity: String,
     #[serde(default)]
     pub bundled: bool,
@@ -40,7 +40,7 @@ pub struct V1Dependency {
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Default)]
 pub struct V2Dependency {
     pub version: String,
-    pub resolved: String,
+    pub resolved: Option<String>,
     pub integrity: String,
     #[serde(default)]
     pub bundled: bool,
@@ -185,7 +185,7 @@ mod tests {
     fn expected_v1() -> V1Dependency {
         V1Dependency{
             version : "7.18.6".to_string(),
-            resolved: "https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string(),
+            resolved: Some("https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string()),
             integrity: "sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string(),
             bundled: false,
             is_dev: true,
@@ -193,7 +193,7 @@ mod tests {
             requires: Some(HashMap::from([("js-tokens".to_string(), "^4.0.0".to_string()), ("chalk".to_string(), "^2.0.0".to_string()),("@babel/helper-validator-identifier".to_string(), "^7.18.6".to_string())])),
             dependencies: Some(HashMap::from([("js-tokens".to_string(), V1Dependency {
                 version: "4.0.0".to_string(),
-                resolved: "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz".to_string(),
+                resolved: Some("https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz".to_string()),
                 integrity: "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==".to_string(),
                 is_dev: true,
                 bundled: false,
@@ -206,7 +206,7 @@ mod tests {
     fn expected_v2() -> V2Dependency {
         V2Dependency{
             version : "7.18.6".to_string(),
-            resolved: "https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string(),
+            resolved: Some("https://registry.npmjs.org/@babel/highlight/-/highlight-7.18.6.tgz".to_string()),
             integrity: "sha512-u7stbOuYjaPezCuLj29hNW1v64M2Md2qupEKP1fHc7WdOA3DgLh37suiSrZYY7haUB7iBeQZ9P1uiRF359do3g==".to_string(),
             bundled: false,
             is_dev: true,
