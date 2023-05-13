@@ -40,6 +40,7 @@ pub struct V1Dependency {
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Default)]
 pub struct V2Dependency {
     pub version: String,
+    pub name: Option<String>,
     pub resolved: Option<String>,
     pub integrity: Option<String>,
     #[serde(default)]
@@ -57,6 +58,8 @@ pub struct V2Dependency {
     #[serde(rename = "hasShrinkwrap", default)]
     pub has_shrink_wrap: bool,
     pub dependencies: Option<HashMap<String, String>>,
+    #[serde(rename = "devDependencies")]
+    pub dev_dependencies: Option<HashMap<String, String>>,
     #[serde(rename = "optionalDependencies")]
     pub optional_dependencies: Option<HashMap<String, String>>,
     #[serde(rename = "peerDependencies")]
@@ -157,8 +160,24 @@ where
             let package = serde_json::from_value::<V2Dependency>(value);
             match package {
                 Ok(package) => {
-                    let key = key.replace("node_modules/", "");
-                    packages.insert(key, package);
+                    let pattern = "node_modules/";
+                    if key.starts_with(pattern) {
+                        if !key.contains("/node_modules/") {
+                            // we are ignoring nested dependencies
+                            let key = key.replace(pattern, "");
+                            packages.insert(key, package);
+                        }
+                    } else {
+                        // possibly workspaces, let's look for name
+                        if let Some(ref name) = package.name {
+                            // if name, we will use it as the key.
+                            // these packages will also have a version with a `node_modules/` prefix.
+                            // as that version won't have a version, it will fail to parse and will be silently ignored.
+                            packages.insert(name.clone(), package);
+                        } else {
+                            packages.insert(key, package);
+                        }
+                    }
                 }
                 Err(e) => {
                     // swallowing the error as we don't want to break the whole process
@@ -180,6 +199,7 @@ where
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     fn expected_v1() -> V1Dependency {
@@ -218,7 +238,80 @@ mod tests {
     }
 
     #[test]
-    fn parse_workspace_dependencies_works() {
+    fn parse_moon_workspace_dependencies_works() {
+        let content = std::fs::read_to_string("tests/workspace/moon/package-lock.json").unwrap();
+        let lock_file = parse(content).unwrap();
+        assert_eq!(lock_file.name, "moon-examples");
+        assert_eq!(lock_file.version, "1.2.3");
+        assert_eq!(lock_file.lockfile_version, 3);
+
+        assert!(lock_file.dependencies.is_none());
+        assert!(lock_file.packages.is_some());
+
+        let packages = lock_file.packages.unwrap();
+
+        let yaml = packages.get("yaml").unwrap();
+        let expected_yaml = V2Dependency {
+            version: "2.2.2".to_string(),
+            resolved: Some("https://registry.npmjs.org/yaml/-/yaml-2.2.2.tgz".to_string()),
+            integrity: Some("sha512-CBKFWExMn46Foo4cldiChEzn7S7SRV+wqiluAb6xmueD/fGyRHIhX8m14vVGgeFWjN540nKCNVj6P21eQjgTuA==".to_string()),
+            is_dev: true,
+            engines: Some(HashMap::from([("node".to_string(), ">= 14".to_string())])),
+            ..V2Dependency::default()
+        };
+        assert_eq!(yaml, &expected_yaml);
+
+        // workspace?
+        let libnpmdiff = packages.get("workspaces/libnpmdiff").unwrap();
+        assert_eq!(libnpmdiff.version, "5.0.17".to_string());
+        assert_eq!(libnpmdiff.license, Some("ISC".to_string()));
+        assert!(libnpmdiff.dependencies.is_some());
+        let dependencies = libnpmdiff.dependencies.as_ref().unwrap();
+        assert!(dependencies.contains_key("pacote"));
+        assert!(dependencies.contains_key("tar"));
+    }
+
+    #[test]
+    fn parse_v2_workspace_dependencies_works() {
+        let content = std::fs::read_to_string("tests/workspace/v2/package-lock.json").unwrap();
+        let lock_file = parse(content).unwrap();
+        assert_eq!(lock_file.name, "test-node-npm");
+        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.lockfile_version, 2);
+
+        assert!(lock_file.dependencies.is_some());
+        assert!(lock_file.packages.is_some());
+
+        let packages = lock_file.packages.unwrap();
+
+        let test_node_npm_base = packages.get("test-node-npm-base").unwrap();
+        let expected_base = V2Dependency {
+            version: "1.0.0".to_string(),
+            name: Some("test-node-npm-base".to_string()),
+            dependencies: Some(HashMap::from([("react".to_string(), "17.0.0".to_string())])),
+            ..V2Dependency::default()
+        };
+        assert_eq!(test_node_npm_base, &expected_base);
+
+        // ensure base is not present
+        let base = packages.get("base");
+        assert!(base.is_none());
+
+        // let's check now v1 version
+        let dependencies = lock_file.dependencies.unwrap();
+        let test_node_npm_v1 = dependencies.get("test-node-npm-base").unwrap();
+        assert_eq!(
+            test_node_npm_v1,
+            &V1Dependency {
+                version: "file:base".to_string(),
+                requires: Some(HashMap::from([("react".to_string(), "17.0.0".to_string())])),
+                ..V1Dependency::default()
+            }
+        );
+    }
+
+    #[test]
+    fn parse_v3_workspace_dependencies_works() {
         let content = std::fs::read_to_string("tests/workspace/v3/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "kk");
@@ -229,9 +322,31 @@ mod tests {
         assert!(lock_file.packages.is_some());
 
         let packages = lock_file.packages.unwrap();
-        let lib = packages.get("liba").unwrap();
 
-        let expected = V2Dependency {
+        // check liba
+        let liba = packages.get("liba").unwrap();
+        let expected_liba = V2Dependency {
+            version: "1.0.0".to_string(),
+            resolved: None,
+            integrity: None,
+            bundled: false,
+            is_dev: false,
+            is_optional: false,
+            dependencies: Some(HashMap::from([("libb2".to_string(), "*".to_string())])),
+            license: Some("ISC".to_string()),
+            engines: None,
+            ..V2Dependency::default()
+        };
+        assert_eq!(liba, &expected_liba);
+
+        // ensure libb is not present
+        let libb = packages.get("libb");
+        assert!(libb.is_none());
+
+        // ensure libb2 is present
+        let libb2 = packages.get("libb2").unwrap();
+        let expected_libb2 = V2Dependency {
+            name: Some("libb2".to_string()),
             version: "1.0.0".to_string(),
             resolved: None,
             integrity: None,
@@ -243,8 +358,7 @@ mod tests {
             engines: None,
             ..V2Dependency::default()
         };
-
-        assert_eq!(lib, &expected);
+        assert_eq!(libb2, &expected_libb2);
     }
 
     #[test]
