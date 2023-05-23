@@ -142,7 +142,7 @@ where
     if let Some(package) = value {
         let mut packages = HashMap::new();
         for (key, mut value) in package {
-            if key == "" {
+            if key.is_empty() {
                 // skipping package information as it doesn't follow the schema.
                 tracing::info!("Skipping package information in packages.");
                 continue;
@@ -154,12 +154,12 @@ where
                     "Found engines as an array instead of an object. Fixing it. ({})",
                     key
                 );
-                if engines.len() > 0 {
+                if !engines.is_empty() {
                     let mut new_engines = HashMap::new();
                     for engine in engines {
                         let engine = engine.as_str().unwrap();
                         let (name, version) =
-                            engine.split_once(" ").unwrap_or(("not_found", "not_found"));
+                            engine.split_once(' ').unwrap_or(("not_found", "not_found"));
                         new_engines.insert(name, version);
                     }
                     value["engines"] = serde_json::value::to_value(new_engines).unwrap();
