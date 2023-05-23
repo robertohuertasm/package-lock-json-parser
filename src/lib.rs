@@ -14,7 +14,7 @@ pub enum PackageLockJsonError {
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Eq, PartialEq)]
 pub struct PackageLockJson {
     pub name: String,
-    pub version: String,
+    pub version: Option<String>,
     #[serde(rename = "lockfileVersion")]
     pub lockfile_version: u32,
     pub dependencies: Option<HashMap<String, V1Dependency>>,
@@ -83,7 +83,20 @@ pub struct SimpleDependency {
 pub fn parse(
     content: impl Into<String> + std::fmt::Debug,
 ) -> Result<PackageLockJson, PackageLockJsonError> {
-    let json: PackageLockJson = serde_json::from_str(&content.into())?;
+    let mut json: PackageLockJson = serde_json::from_str(&content.into())?;
+    // fix version for v2 and workspaces
+    // version = "file:mainlib" -> version = "0.0.0"
+    if let (Some(dependencies), Some(packages)) =
+        (json.dependencies.as_mut(), json.packages.as_ref())
+    {
+        for (name, dependency) in dependencies {
+            if dependency.version.starts_with("file:") {
+                if let Some(pkg) = packages.get(name) {
+                    dependency.version = pkg.version.clone();
+                }
+            }
+        }
+    }
     Ok(json)
 }
 
@@ -238,11 +251,40 @@ mod tests {
     }
 
     #[test]
+    fn works_without_version() {
+        let content = std::fs::read_to_string("tests/cool-project/package-lock.json").unwrap();
+        let lock_file = parse(content).unwrap();
+        assert_eq!(lock_file.name, "cool-project");
+        assert!(lock_file.version.is_none());
+    }
+
+    #[test]
+    fn cool_project_works() {
+        let content = std::fs::read_to_string("tests/cool-project/package-lock.json").unwrap();
+        let lock_file = parse(content).unwrap();
+        assert_eq!(lock_file.name, "cool-project");
+        assert!(lock_file.version.is_none());
+        assert_eq!(lock_file.lockfile_version, 2);
+
+        assert!(lock_file.dependencies.is_some());
+        assert!(lock_file.packages.is_some());
+
+        let packages = lock_file.packages.unwrap();
+        let cool = packages.get("cool-project").unwrap();
+        assert_eq!(cool.name, Some("cool-project".to_string()));
+        assert_eq!(cool.version, "23.1.21".to_string());
+
+        let dependencies = lock_file.dependencies.unwrap();
+        let cool = dependencies.get("cool-project").unwrap();
+        assert_eq!(cool.version, "23.1.21".to_string());
+    }
+
+    #[test]
     fn parse_moon_workspace_dependencies_works() {
         let content = std::fs::read_to_string("tests/workspace/moon/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "moon-examples");
-        assert_eq!(lock_file.version, "1.2.3");
+        assert_eq!(lock_file.version, Some("1.2.3".to_string()));
         assert_eq!(lock_file.lockfile_version, 3);
 
         assert!(lock_file.dependencies.is_none());
@@ -276,7 +318,7 @@ mod tests {
         let content = std::fs::read_to_string("tests/workspace/v2/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "test-node-npm");
-        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.version, Some("1.0.0".to_string()));
         assert_eq!(lock_file.lockfile_version, 2);
 
         assert!(lock_file.dependencies.is_some());
@@ -315,7 +357,7 @@ mod tests {
         let content = std::fs::read_to_string("tests/workspace/v3/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "kk");
-        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.version, Some("1.0.0".to_string()));
         assert_eq!(lock_file.lockfile_version, 3);
 
         assert!(lock_file.dependencies.is_none());
@@ -367,7 +409,7 @@ mod tests {
         let content = std::fs::read_to_string("tests/v1/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "cxtl");
-        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.version, Some("1.0.0".to_string()));
         assert_eq!(lock_file.lockfile_version, 1);
 
         assert!(lock_file.dependencies.is_some());
@@ -387,7 +429,7 @@ mod tests {
         let content = std::fs::read_to_string("tests/v2/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "cxtl");
-        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.version, Some("1.0.0".to_string()));
         assert_eq!(lock_file.lockfile_version, 2);
 
         assert!(lock_file.dependencies.is_some());
@@ -414,7 +456,7 @@ mod tests {
         let content = std::fs::read_to_string("tests/v3/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
         assert_eq!(lock_file.name, "cxtl");
-        assert_eq!(lock_file.version, "1.0.0");
+        assert_eq!(lock_file.version, Some("1.0.0".to_string()));
         assert_eq!(lock_file.lockfile_version, 3);
 
         assert!(lock_file.dependencies.is_none());
