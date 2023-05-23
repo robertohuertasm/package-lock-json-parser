@@ -345,7 +345,7 @@ mod tests {
         assert_eq!(
             test_node_npm_v1,
             &V1Dependency {
-                version: "file:base".to_string(),
+                version: "1.0.0".to_string(),
                 requires: Some(HashMap::from([("react".to_string(), "17.0.0".to_string())])),
                 ..V1Dependency::default()
             }
