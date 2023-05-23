@@ -1,6 +1,6 @@
 [package]
 name = "package-lock-json-parser"
-version = "0.3.0"
+version = "0.4.0"
 description = "A parser for package-lock.json files"
 authors = [
   "Roberto Huertas <roberto.huertas@outlook.com>",
