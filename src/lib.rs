@@ -149,12 +149,14 @@ where
             }
             // check for engine bad formats.
             // some people use an array instead of an object.
-            if let Some(engines) = value.get("engines").and_then(|e| e.as_array()) {
+            if let Some(engines) = value.get("engines").and_then(serde_json::Value::as_array) {
                 tracing::warn!(
                     "Found engines as an array instead of an object. Fixing it. ({})",
                     key
                 );
-                if !engines.is_empty() {
+                if engines.is_empty() {
+                    value["engines"] = serde_json::Value::Null;
+                } else {
                     let mut new_engines = HashMap::new();
                     for engine in engines {
                         let engine = engine.as_str().unwrap();
@@ -163,8 +165,6 @@ where
                         new_engines.insert(name, version);
                     }
                     value["engines"] = serde_json::value::to_value(new_engines).unwrap();
-                } else {
-                    value["engines"] = serde_json::Value::Null;
                 }
             }
 
@@ -404,7 +404,6 @@ mod tests {
     }
 
     #[test]
-
     fn parse_v1_from_file_works() {
         let content = std::fs::read_to_string("tests/v1/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
@@ -424,7 +423,6 @@ mod tests {
     }
 
     #[test]
-
     fn parse_v2_from_file_works() {
         let content = std::fs::read_to_string("tests/v2/package-lock.json").unwrap();
         let lock_file = parse(content).unwrap();
